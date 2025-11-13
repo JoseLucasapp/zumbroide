@@ -9,6 +9,7 @@
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT {NULL, 0}
+#define ZUMBROIDE_VERSION "0.0.1"
 
 struct editorConfig {
     struct termios orig_termios;
@@ -95,9 +96,22 @@ void init(){
 void editorDrawRows(struct appendingBuff *ab){
     int y;
     for(y = 0; y < E.screenrows; y++){
-        abAppend(ab, "~", 1);
+        if(y == E.screenrows / 3){
+            char welcome[80];
+            int welcomelen = snprintf(welcome, sizeof(welcome),  "Zumbroide editor --version %s", ZUMBROIDE_VERSION);
+            if(welcomelen > E.screencols) welcomelen = E.screencols;
+            int padding = (E.screencols - welcomelen) / 2;
+            if(padding){
+                abAppend(ab, "~", 1);
+                padding--;
+            }
+            while(padding--) abAppend(ab, " ", 1);
+            abAppend(ab, welcome, welcomelen);
+        }else{
+            abAppend(ab, "~", 1);
+        }
         
-        abAppend(&ab, "\x1b[K", 4);
+        abAppend(ab, "\x1b[K", 3);
         if(y < E.screenrows - 1){
             abAppend(ab, "\r\n", 2);
         }

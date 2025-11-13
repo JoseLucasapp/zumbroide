@@ -9,7 +9,14 @@
 
 struct termios orig_termios;
 
+void editorRefreshScreen(){
+    write(STDIN_FILENO, "\x1b[2J", 4);
+    write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
 void kys(const char *s){
+    editorRefreshScreen();
+
     perror(s);
     exit(1);
 }
@@ -41,11 +48,6 @@ char editorReadKey(){
     }
 
     return c;
-}
-
-void editorRefreshScreen(){
-    write(STDIN_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
 void editorProcessKeypress(){

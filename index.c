@@ -7,15 +7,33 @@
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 
-struct termios orig_termios;
+struct editorConfig {
+    struct termios orig_termios;
+}
 
-void editorRefreshScreen(){
+struct editorConfig E;
+
+void editorDrawRows(){
+    int y;
+    for(y = 0; y < 24; y++){
+        write(STDOUT_FILENO, "~\r\n", 3);
+    }
+}
+
+void refreshScreen(){
     write(STDIN_FILENO, "\x1b[2J", 4);
     write(STDOUT_FILENO, "\x1b[H", 3);
 }
 
+void editorRefreshScreen(){
+    refreshScreen();
+    editorDrawRows();
+
+    write(STDOUT_FILENO, "\x1b[H", 3);
+}
+
 void kys(const char *s){
-    editorRefreshScreen();
+    refreshScreen();
 
     perror(s);
     exit(1);

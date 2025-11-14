@@ -25,6 +25,23 @@ struct appendingBuff{
     int len;
 };
 
+void moveScreen(char key){
+    switch(key){
+        case 'a':
+            E.cx--;
+            break;
+        case 'd':
+            E.cx++;
+            break;
+        case 'w':
+            E.cy--;
+            break;
+        case 's':
+            E.cy++;
+            break;
+    }
+}
+
 void abAppend(struct appendingBuff *ab, const char *s, int len){
     char *new = realloc(ab->b, ab->len + len);
 
@@ -163,7 +180,15 @@ void editorProcessKeypress(){
 
     switch(c){
         case CTRL_KEY('q'):
+            write(STDOUT_FILENO, "\x1b[2J", 4);
+            write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
+            break;
+        case 'w':
+        case 'a':
+        case 's':
+        case 'd':
+            moveScreen(c);
             break;
     }
 }

@@ -25,19 +25,34 @@ struct appendingBuff{
     int len;
 };
 
-void moveScreen(char key){
+enum editorKey {
+  ARROW_LEFT = 1000,
+  ARROW_RIGHT,
+  ARROW_UP,
+  ARROW_DOWN
+};
+
+void moveScreen(int key){
     switch(key){
-        case 'a':
-            E.cx--;
+        case ARROW_LEFT:
+            if(E.cx != 0){
+                E.cx--;
+            }
             break;
-        case 'd':
-            E.cx++;
+        case ARROW_RIGHT:
+            if (E.cx != E.screencols - 1) {
+                E.cx++;
+            }
             break;
-        case 'w':
-            E.cy--;
+        case ARROW_UP:
+            if (E.cy != 0) {
+                E.cy--;
+            }
             break;
-        case 's':
-            E.cy++;
+        case ARROW_DOWN:
+            if (E.cy != E.screenrows - 1) {
+                E.cy++;
+            }
             break;
     }
 }
@@ -64,14 +79,32 @@ void kys(const char *s){
     exit(1);
 }
 
-char editorReadKey(){
+int editorReadKey(){
     int nread;
     char c;
     while ((nread = read(STDIN_FILENO, &c, 1)) != 1){
         if(nread == -1 && errno != EAGAIN) kys("read");
     }
 
-    return c;
+    if(c == '\x1b'){
+        char seq[3];
+
+        if (read(STDIN_FILENO, &seq[0], 1) != 1) return '\x1b';
+        if (read(STDIN_FILENO, &seq[1], 1) != 1) return '\x1b';
+
+        if(seq[0] == '['){
+            switch (seq[1]){
+                case 'A': return ARROW_UP;
+                case 'B': return ARROW_DOWN;
+                case 'C': return ARROW_RIGHT;
+                case 'D': return ARROW_LEFT;
+            }
+        }
+
+        return '\x1b';
+    }else{
+       return c; 
+    }
 }
 
 int getCursorPosition(int *rows, int *cols){
@@ -176,7 +209,7 @@ void enableRawMode(){
 }
 
 void editorProcessKeypress(){
-    char c = editorReadKey();
+    int c = editorReadKey();
 
     switch(c){
         case CTRL_KEY('q'):
@@ -184,10 +217,10 @@ void editorProcessKeypress(){
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
             break;
-        case 'w':
-        case 'a':
-        case 's':
-        case 'd':
+        case ARROW_UP:
+        case ARROW_LEFT:
+        case ARROW_DOWN:
+        case ARROW_RIGHT:
             moveScreen(c);
             break;
     }

@@ -41,6 +41,7 @@ struct editorConfig {
     char *filename;
     char statusmsg[80];
     time_t statusmsg_time;
+    int dirty;
 };
 
 struct editorConfig E;
@@ -254,6 +255,7 @@ void editorAppendRow(char *s, size_t len){
     E.row[at].render = NULL;
     editorUpdateRow(&E.row[at]);
     E.numrows++;
+    E.dirty++;
 }
 
 void insertCharRow(erow *row, int at, int c){
@@ -263,6 +265,7 @@ void insertCharRow(erow *row, int at, int c){
     row ->size++;
     row->chars[at] = c;
     editorUpdateRow(row);
+    E.dirty++;
 }
 
 void insertChar(int c){
@@ -318,6 +321,7 @@ void openEditor(char *filename){
 
     free(line);
     fclose(fp);
+    E.dirty = 0;
 }
 
 void save(){
@@ -332,6 +336,7 @@ void save(){
             if(write(fd, buf, len) == len){
                 close(fd);
                 free(buf);
+                E.dirty = 0;
                 setStatusMessage("%d bytes written to disk", len);
                 return;
             }
@@ -353,6 +358,7 @@ void init(){
     E.filename = NULL;
     E.statusmsg[0] = '\0';
     E.statusmsg_time = 0;
+    E.dirty = 0;
 
     if(getWindowSize(&E.screenrows, &E.screencols) == -1) kys("getWindowSize");
     E.screenrows -= 2;
@@ -412,7 +418,7 @@ void editorDrawRows(struct appendingBuff *ab){
 void statusBar(struct appendingBuff *ab){
     abAppend(ab, "\x1b[7m", 4);
     char status[80], rstatus[80];
-    int len = snprintf(status, sizeof(status), "%.20s - %d lines", E.filename ? E.filename : "[No Name]", E.numrows);
+    int len = snprintf(status, sizeof(status), "%.20s - %d lines", E.filename ? E.filename : "[No Name]", E.numrows, E.dirty ? "(modified)":"");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.cy + 1, E.numrows);
     
     if(len > E.screencols) len = E.screencols;

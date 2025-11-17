@@ -251,6 +251,24 @@ void editorAppendRow(char *s, size_t len){
     E.numrows++;
 }
 
+void insertCharRow(erow *row, int at, int c){
+    if(at < 0 || at > row ->size) at = row->size;
+    row->chars = realloc(row->chars, row->size +2);
+    memmove(&row->chars[at + 1], &row->chars[at], row->size - at + 1);
+    row ->size++;
+    row->chars[at] = c;
+    editorUpdateRow(row);
+}
+
+void insertChar(int c){
+    if(E.cy == E.numrows){
+        editorAppendRow("", 0);
+    }
+
+    insertCharRow(&E.row[E.cy], E.cx, c);
+    E.cx++;
+}
+
 void open(char *filename){
     free(E.filename);
     E.filename = strdup(filename);
@@ -451,6 +469,10 @@ void editorProcessKeypress(){
         case ARROW_DOWN:
         case ARROW_RIGHT:
             moveScreen(c);
+            break;
+
+        default:
+            insertChar(c);
             break;
     }
 }

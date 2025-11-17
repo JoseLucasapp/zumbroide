@@ -21,7 +21,6 @@
 #define ZUMBROID_TAB_STOP 8
 #define ZUMBROID_QUIT_TIME 3
 
-
 typedef struct erow{
     int size;
     int rsize;
@@ -48,6 +47,8 @@ struct editorConfig {
 struct editorConfig E;
 
 void setStatusMessage(const char *fmt, ...);
+void editorRefreshScreen();
+char *editorPrompt(char *prompt);
 
 struct appendingBuff{
     char *b;
@@ -67,62 +68,9 @@ enum editorKey {
     PAGE_DOWN
 };
 
-void moveScreen(int key){
-    erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
-
-    switch(key){
-        case ARROW_LEFT:
-            if(E.cx != 0){
-                E.cx--;
-            } else if(E.cy > 0){
-                E.cy --;
-                E.cx = E.row[E.cy].size;
-            }
-            break;
-        case ARROW_RIGHT:
-            if(row && E.cx < row->size){
-                E.cx++;
-            }else if(row && E.cx == row->size){
-                E.cy++;
-                E.cx = 0;
-            }
-            break;
-        case ARROW_UP:
-            if (E.cy != 0) {
-                E.cy--;
-            }
-            break;
-        case ARROW_DOWN:
-            if (E.cy != E.numrows) {
-                E.cy++;
-            }
-            break;
-    }
-
-    row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
-    int rowlen = row ? row->size : 0;
-    if(E.cx > rowlen){
-        E.cx = rowlen;
-    }
-}
-
-void abAppend(struct appendingBuff *ab, const char *s, int len){
-    char *new = realloc(ab->b, ab->len + len);
-
-    if(new == NULL) return;
-    memcpy(&new[ab->len], s, len);
-    ab->b = new;
-    ab->len += len;
-}
-
-void abFree(struct appendingBuff *ab){
-    free(ab->b);
-}
-
 void kys(const char *s){
     write(STDOUT_FILENO, "\x1b[2J", 4);
     write(STDOUT_FILENO, "\x1b[H", 3);
-
     perror(s);
     exit(1);
 }
@@ -176,12 +124,99 @@ int editorReadKey(){
     }
 }
 
+char *editorPrompt(char *prompt){
+    size_t bufsize = 128;
+    char *buf = malloc(bufsize);
+    size_t buflen = 0;
+    buf[0] = '\0';
+
+    while(1){
+        setStatusMessage(prompt, buf);
+        editorRefreshScreen();
+
+        int c = editorReadKey();
+        if(c == DEL_KEY || c == CTRL_KEY('h') || c == BACKSPACE){
+            if(buflen != 0)buf[--buflen] ='\0';
+        }else if(c == '\x1b'){
+            setStatusMessage("");
+            free(buf);
+            return NULL;
+        }else if(c == '\r'){
+            if(buflen != 0){
+                setStatusMessage("");
+                return buf;
+            }
+        }else if(!iscntrl(c) && c < 128){
+            if(buflen == bufsize - 1){
+                bufsize *= 2;
+                buf = realloc(buf, bufsize);
+            }
+            buf[buflen++] = c;
+            buf[buflen] = '\0';
+        }
+    }
+}
+
+void moveScreen(int key){
+    erow *row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+
+    switch(key){
+        case ARROW_LEFT:
+            if(E.cx != 0){
+                E.cx--;
+            } else if(E.cy > 0){
+                E.cy --;
+                E.cx = E.row[E.cy].size;
+            }
+            break;
+
+        case ARROW_RIGHT:
+            if(row && E.cx < row->size){
+                E.cx++;
+            }else if(row && E.cx == row->size){
+                E.cy++;
+                E.cx = 0;
+            }
+            break;
+
+        case ARROW_UP:
+            if (E.cy != 0) {
+                E.cy--;
+            }
+            break;
+
+        case ARROW_DOWN:
+            if (E.cy != E.numrows) {
+                E.cy++;
+            }
+            break;
+    }
+
+    row = (E.cy >= E.numrows) ? NULL : &E.row[E.cy];
+    int rowlen = row ? row->size : 0;
+    if(E.cx > rowlen){
+        E.cx = rowlen;
+    }
+}
+
+void abAppend(struct appendingBuff *ab, const char *s, int len){
+    char *new = realloc(ab->b, ab->len + len);
+
+    if(new == NULL) return;
+    memcpy(&new[ab->len], s, len);
+    ab->b = new;
+    ab->len += len;
+}
+
+void abFree(struct appendingBuff *ab){
+    free(ab->b);
+}
+
 int getCursorPosition(int *rows, int *cols){
     char buf[32];
     unsigned int i = 0;
 
     if(write(STDOUT_FILENO, "\x1b[6n", 4) != 4) return -1;
-
     while(i < sizeof(buf) - 1){
         if(read(STDIN_FILENO, &buf[i], i) != 1) break;
         if(buf[i] == 'R') break;
@@ -386,7 +421,13 @@ void openEditor(char *filename){
 }
 
 void save(){
-    if(E.filename == NULL) return;
+    if(E.filename == NULL) {
+        E.filename = editorPrompt("Save as: %s (ESC to cancel)");
+        if(E.filename == NULL){
+            setStatusMessage("Save aborted");
+            return;
+        }
+    };
 
     int len;
     char *buf = rowsToString(&len);

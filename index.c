@@ -50,14 +50,15 @@ struct appendingBuff{
 };
 
 enum editorKey {
-  ARROW_LEFT = 1000,
-  ARROW_RIGHT,
-  ARROW_UP,
-  ARROW_DOWN,
-  HOME_KEY,
-  END_KEY,
-  PAGE_UP,
-  PAGE_DOWN
+    BACKSPACE=127,
+    ARROW_LEFT = 1000,
+    ARROW_RIGHT,
+    ARROW_UP,
+    ARROW_DOWN,
+    HOME_KEY,
+    END_KEY,
+    PAGE_UP,
+    PAGE_DOWN
 };
 
 void moveScreen(int key){
@@ -437,6 +438,8 @@ void editorProcessKeypress(){
     int c = editorReadKey();
 
     switch(c){
+        case '\r':
+            break;
         case CTRL_KEY('q'):
             write(STDOUT_FILENO, "\x1b[2J", 4);
             write(STDOUT_FILENO, "\x1b[H", 3);
@@ -449,6 +452,12 @@ void editorProcessKeypress(){
             if(E.cy < E.numrows)
                 E.cx = E.row[E.cy].size;
             break;
+
+        case BACKSPACE:
+        case CTRL_KEY('h'):
+        case DEL_KEY:
+            break;
+
         case PAGE_UP:
         case PAGE_DOWN:
             {
@@ -469,6 +478,10 @@ void editorProcessKeypress(){
         case ARROW_DOWN:
         case ARROW_RIGHT:
             moveScreen(c);
+            break;
+        
+        case CTRL_KEY('l'):
+        case '\x1b':
             break;
 
         default:

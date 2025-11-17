@@ -19,6 +19,7 @@
 #define ABUF_INIT {NULL, 0}
 #define ZUMBROIDE_VERSION "0.0.1"
 #define ZUMBROID_TAB_STOP 8
+#define ZUMBROID_QUIT_TIME 3
 
 
 typedef struct erow{
@@ -418,7 +419,7 @@ void editorDrawRows(struct appendingBuff *ab){
 void statusBar(struct appendingBuff *ab){
     abAppend(ab, "\x1b[7m", 4);
     char status[80], rstatus[80];
-    int len = snprintf(status, sizeof(status), "%.20s - %d lines", E.filename ? E.filename : "[No Name]", E.numrows, E.dirty ? "(modified)":"");
+    int len = snprintf(status, sizeof(status), "%.20s - %d lines %s", E.filename ? E.filename : "[No Name]", E.numrows, E.dirty ? "(modified)":"");
     int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.cy + 1, E.numrows);
     
     if(len > E.screencols) len = E.screencols;
@@ -485,6 +486,7 @@ void enableRawMode(){
 }
 
 void editorProcessKeypress(){
+    static int quit_times = ZUMBROID_QUIT_TIME;
     int c = editorReadKey();
 
     switch(c){
@@ -492,6 +494,12 @@ void editorProcessKeypress(){
             break;
 
         case CTRL_KEY('q'):
+            if(E.dirty && quit_times > 0){
+                setStatusMessage("WARNING!!! File has unsaved changes. "
+                "Press Ctrl-Q %d more times to quit.", quit_times);
+                quit_times--;
+                return;
+            }
             write(STDOUT_FILENO, "\x1b[2J", 4);
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
@@ -545,6 +553,8 @@ void editorProcessKeypress(){
             insertChar(c);
             break;
     }
+
+    quit_times = ZUMBROID_QUIT_TIME;
 }
 
 int main (int argc, char *argv[]){

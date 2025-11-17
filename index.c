@@ -26,6 +26,7 @@ typedef struct erow{
     int rsize;
     char *chars;
     char *render;
+    unsigned char *hl;
 } erow;
 
 struct editorConfig {
@@ -66,6 +67,11 @@ enum editorKey {
     END_KEY,
     PAGE_UP,
     PAGE_DOWN
+};
+
+enum editorHighlight {
+  HL_NORMAL = 0,
+  HL_NUMBER
 };
 
 void kys(const char *s){
@@ -247,6 +253,25 @@ int getWindowSize(int *rows, int *cols){
     }
 }
 
+void updateSyntax(erow *row){
+    row->hl = realloc(row->hl, row->rsize);
+    memset(row->hl, HL_NORMAL, row->rsize);
+
+    int i;
+    for(i=0; i<row->rsize;i++){
+        if(isdigit(row->render[i])){
+            row->hl[i] = HL_NUMBER;
+        }
+    }
+}
+
+int syntaxToColor(int hl) {
+  switch (hl) {
+    case HL_NUMBER: return 31;
+    default: return 37;
+  }
+}
+
 int editorRowCxToRx(erow *row, int cx){
     int rx = 0;
     int j;
@@ -294,18 +319,23 @@ void editorUpdateRow(erow *row){
     
     row->render[idx] = '\0';
     row->rsize = idx;
+
+    updateSyntax(row);
 }
 
 void editorAppendRow(int at, char *s, size_t len){
     if (at < 0 || at > E.numrows) return;
+
     E.row = realloc(E.row, sizeof(erow) * (E.numrows + 1));
     memmove(&E.row[at + 1], &E.row[at], sizeof(erow) * (E.numrows - at));
+
     E.row[at].size = len;
     E.row[at].chars = malloc(len + 1);
     memcpy(E.row[at].chars, s, len);
     E.row[at].chars[len] = '\0';
     E.row[at].rsize = 0;
     E.row[at].render = NULL;
+    E.row[at].hl = NULL;
     editorUpdateRow(&E.row[at]);
     E.numrows++;
     E.dirty++;
@@ -314,6 +344,7 @@ void editorAppendRow(int at, char *s, size_t len){
 void freeRow(erow *row){
     free(row->render);
     free(row->chars);
+    free(row->hl);
 }
 
 void delRow(int at){
@@ -583,9 +614,30 @@ void editorDrawRows(struct appendingBuff *ab){
             int len = E.row[filerow].rsize - E.coloff;
             if (len < 0) len = 0;
             if(len > E.screencols) len = E.screencols;
-            abAppend(ab, &E.row[filerow].render[E.coloff], len);
+            char *c = &E.row[filerow].render[E.coloff];
+            unsigned char *hl = &E.row[filerow].hl[E.coloff];
+            int current_color = -1;
+            int j;
+            for(j = 0; j < len; j++){
+                if(hl[j] == HL_NORMAL){
+                    if(current_color != -1){
+                        abAppend(ab, "\x1b[39m", 5);
+                        current_color = -1;
+                    }
+                    abAppend(ab, &c[j], 1);
+                }else{
+                    int color = syntaxToColor(hl[j]);
+                    if(color != current_color){
+                        current_color = color;
+                        char buf[16];
+                        int clen = snprintf(buf, sizeof(buf), "\x1b[%dm", color);
+                        abAppend(ab, buf, clen);
+                    }
+                    abAppend(ab, &c[j], 1);
+                }
+            }
+            abAppend(ab, "\x1b[31m", 5);
         }
-        
         abAppend(ab, "\x1b[K", 3);
         abAppend(ab, "\r\n", 2);
     }

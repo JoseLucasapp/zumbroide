@@ -13,6 +13,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdarg.h>
+#include <fcntl.h>
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT {NULL, 0}
@@ -44,6 +45,8 @@ struct editorConfig {
 
 struct editorConfig E;
 
+void setStatusMessage(const char *fmt, ...);
+
 struct appendingBuff{
     char *b;
     int len;
@@ -55,6 +58,7 @@ enum editorKey {
     ARROW_RIGHT,
     ARROW_UP,
     ARROW_DOWN,
+    DEL_KEY,
     HOME_KEY,
     END_KEY,
     PAGE_UP,
@@ -270,7 +274,33 @@ void insertChar(int c){
     E.cx++;
 }
 
-void open(char *filename){
+char *rowsToString(int *buflen){
+    int totlen = 0;
+    int j;
+    for (j = 0; j < E.numrows; j++) totlen += E.row[j].size +1;
+    *buflen = totlen;
+
+    char *buf = malloc(totlen);
+    char *p = buf;
+    for(j=0; j < E.numrows; j++){
+        memcpy(p, E.row[j].chars, E.row[j].size);
+        p += E.row[j].size;
+        *p = '\n';
+        p++;
+    }
+
+    return buf;
+}
+
+void setStatusMessage(const char *fmt, ...){
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
+    va_end(ap);
+    E.statusmsg_time = time(NULL);
+}
+
+void openEditor(char *filename){
     free(E.filename);
     E.filename = strdup(filename);
 
@@ -288,6 +318,28 @@ void open(char *filename){
 
     free(line);
     fclose(fp);
+}
+
+void save(){
+    if(E.filename == NULL) return;
+
+    int len;
+    char *buf = rowsToString(&len);
+
+    int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
+    if(fd != 1){
+        if(ftruncate(fd, len) != 1){
+            if(write(fd, buf, len) == len){
+                close(fd);
+                free(buf);
+                setStatusMessage("%d bytes written to disk", len);
+                return;
+            }
+        }
+        close(fd);
+    }
+    free(buf);
+    setStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }
 
 void init(){
@@ -407,14 +459,6 @@ void editorRefreshScreen(){
     abFree(&ab);
 }
 
-void setStatusMessage(const char *fmt, ...){
-    va_list ap;
-    va_start(ap, fmt);
-    vsnprintf(E.statusmsg, sizeof(E.statusmsg), fmt, ap);
-    va_end(ap);
-    E.statusmsg_time = time(NULL);
-}
-
 void disableRawMode(){
     if(tcsetattr(STDIN_FILENO, TCSAFLUSH, &E.orig_termios) == -1) kys("tcsetattr");
 }
@@ -440,14 +484,21 @@ void editorProcessKeypress(){
     switch(c){
         case '\r':
             break;
+
         case CTRL_KEY('q'):
             write(STDOUT_FILENO, "\x1b[2J", 4);
             write(STDOUT_FILENO, "\x1b[H", 3);
             exit(0);
             break;
+
+        case CTRL_KEY('s'):
+            save();
+            break;
+
         case HOME_KEY:
             E.cx = 0;
             break;
+
         case END_KEY:
             if(E.cy < E.numrows)
                 E.cx = E.row[E.cy].size;
@@ -495,10 +546,10 @@ int main (int argc, char *argv[]){
     init();
 
     if(argc >= 2){
-       open(argv[1]);
+       openEditor(argv[1]);
     }
 
-    setStatusMessage("HELP: Ctrl-Q = quit");
+    setStatusMessage("HELP: Ctrl-S = save | Ctrl-Q = quit");
 
     while(1){
         editorRefreshScreen();

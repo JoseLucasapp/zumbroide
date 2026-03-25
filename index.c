@@ -15,9 +15,9 @@
 #include <stdarg.h>
 #include <fcntl.h>
 
+#define ZUMBROIDE_VERSION "0.0.2"
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define ABUF_INIT {NULL, 0}
-#define ZUMBROIDE_VERSION "0.0.1"
 #define ZUMBROID_TAB_STOP 8
 #define ZUMBROID_QUIT_TIME 3
 #define HL_HIGHLIGHT_NUMBERS (1<<0)
@@ -78,6 +78,9 @@ char *ZUM_HL_keywords[] = {
   "fct", "return", "if", "else", "while",
   "true", "false", "null",
 
+  /* request / response */
+  "req", "res",
+
   /* builtins */
   "show|", "input|",
   "toInt|", "toFloat|", "toString|", "toBool|",
@@ -86,20 +89,45 @@ char *ZUM_HL_keywords[] = {
   "sendEmail|", "sendWhatsapp|",
   "randomInteger|", "randomFloat|", "bhaskara|",
   "capitalize|", "toLowercase|", "toUppercase|", "removeWhiteSpaces|",
+  "hashCode|", "replace|",
   "indexOf|", "addToArrayStart|", "removeFromArray|", "addToArrayEnd|",
   "min|", "max|", "sizeOf|",
   "first|", "last|", "allButFirst|",
   "addToDict|", "getFromDict|", "deleteFromDict|",
   "get|",
   "jsonParse|",
+
+  /* auth */
+  "jwtCreateToken|", "jwtVerifyToken|",
+
+  /* http / rest */
   "registerRoute|", "server|", "html|",
   "serveStatic|", "serveFile|",
+  "restDelete|", "restGet|", "restPost|", "restPut|", "restPatch|",
+
+  /* mysql */
   "mysqlConnection|", "mysqlCreateTable|", "mysqlInsertIntoTable|",
   "mysqlGetFromTable|", "mysqlUpdateIntoTable|", "mysqlDeleteFromTable|",
   "mysqlShowTables|", "mysqlShowTableColumns|", "mysqlDropTable|",
+
+  /* postgres */
+  "postgresConnection|", "postgresExec|", "postgresQuery|",
+
+  /* redis */
+  "redisConnection|", "redisSet|", "redisGet|", "redisDel|",
+
+  /* supabase */
+  "supabaseConnection|", "supabaseSelect|", "supabaseQuery|",
+  "supabaseSingle|", "supabaseCount|",
+  "supabaseInsert|", "supabaseUpdate|", "supabaseDelete|",
+  "supabaseUpsert|", "supabaseRpc|",
+  "supabaseStorageUpload|", "supabaseStorageDelete|",
+  "supabaseStoragePublicUrl|", "supabaseStorageSignedUrl|", "supabaseStorageDownload|",
+  "supabaseAuthSignUp|", "supabaseAuthSignIn|",
+
+  /* env / files / utils */
   "dotenvLoad|", "dotenvGet|",
   "createCsv|", "createDoc|", "createFile|", "createPdf|", "createTxt|",
-  "restDelete|", "restGet|", "restPost|", "restPut|", "restPatch|",
   "switchCase|",
 
   NULL
@@ -340,7 +368,7 @@ int getWindowSize(int *rows, int *cols){
 }
 
 int is_separator(int c) {
-  return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];", c) != NULL;
+  return isspace(c) || c == '\0' || strchr(",.()+-/*=~%<>[];:{}:", c) != NULL;
 }
 
 void updateSyntax(erow *row){
@@ -731,14 +759,14 @@ void save(){
             return;
         }
         editorSelectSyntaxHighlight();
-    };
+    }
 
     int len;
     char *buf = rowsToString(&len);
 
     int fd = open(E.filename, O_RDWR | O_CREAT, 0644);
-    if(fd != 1){
-        if(ftruncate(fd, len) != 1){
+    if(fd != -1){
+        if(ftruncate(fd, len) != -1){
             if(write(fd, buf, len) == len){
                 close(fd);
                 free(buf);
@@ -749,6 +777,7 @@ void save(){
         }
         close(fd);
     }
+
     free(buf);
     setStatusMessage("Can't save! I/O error: %s", strerror(errno));
 }

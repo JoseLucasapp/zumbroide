@@ -73,28 +73,35 @@ char *C_HL_keywords[] = {
 };
 
 char *ZUM_HL_keywords[] = {
+  /* keywords da linguagem */
   "var", "import", "or", "and", "let", "const",
-  "fct", "return", "show", "input",
-  "toint", "tofloat", "tostring", "tobool",
-  "date", "organize", "sum",
-  "dictvalues", "dictkeys",
-  "sendemail", "sendwhatsapp",
-  "randominteger", "randomfloat", "bhaskara",
-  "capitalize", "tolowercase", "touppercase", "removewhitespaces",
-  "indexof", "addtoarraystart", "removefromarray", "addtoarrayend",
-  "min", "max", "sizeof",
-  "first", "last", "allbutfirst",
-  "addtodict", "getfromdict", "deletefromdict",
-  "clear", "get",
-  "json_parse",
-  "registerroute", "server", "html",
-  "servestatic", "servefile",
-  "mysqlconnection", "mysqlcreatetable", "mysqlinsertintotable",
-  "mysqlgetfromtable", "mysqlupdateintotable", "mysqldeletefromtable",
-  "mysqlshowtables", "mysqlshowtablecolumns", "mysqldroptable",
-  "dotenvload", "dotenvget",
-  "if", "else", "while",
+  "fct", "return", "if", "else", "while",
   "true", "false", "null",
+
+  /* builtins / funções internas */
+  "show|", "input|",
+  "toint|", "tofloat|", "tostring|", "tobool|",
+  "date|", "organize|", "sum|",
+  "dictvalues|", "dictkeys|",
+  "sendemail|", "sendwhatsapp|",
+  "randominteger|", "randomfloat|", "bhaskara|",
+  "capitalize|", "tolowercase|", "touppercase|", "removewhitespaces|",
+  "indexof|", "addtoarraystart|", "removefromarray|", "addtoarrayend|",
+  "min|", "max|", "sizeof|",
+  "first|", "last|", "allbutfirst|",
+  "addtodict|", "getfromdict|", "deletefromdict|",
+  "clear|", "get|",
+  "json_parse|",
+  "registerroute|", "server|", "html|",
+  "servestatic|", "servefile|",
+  "mysqlconnection|", "mysqlcreatetable|", "mysqlinsertintotable|",
+  "mysqlgetfromtable|", "mysqlupdateintotable|", "mysqldeletefromtable|",
+  "mysqlshowtables|", "mysqlshowtablecolumns|", "mysqldroptable|",
+  "dotenvload|", "dotenvget|",
+  "createcsv|", "createdoc|", "createfile|", "createpdf|", "createtxt|",
+  "restdelete|", "restget|", "restpost|", "restput|", "restpatch|",
+  "switchcase|",
+
   NULL
 };
 
@@ -461,14 +468,27 @@ void updateSyntax(erow *row){
 int syntaxToColor(int hl) {
   switch (hl) {
     case HL_COMMENT:
-    case HL_MLCOMMENT: return 36;
-    case HL_KEYWORD1: return 33;
-    case HL_KEYWORD2: return 32;
+    case HL_MLCOMMENT:
+      return 36;
+
+    case HL_KEYWORD1:
+      return 33;
+
+    case HL_KEYWORD2:
+      return 32;
+
     case HL_STRING:
-    case HL_NUMBER: return 35;
-    case HL_MATCH: return 34;
-    case HL_OPERATOR: return 33;
-    default: return 37;
+    case HL_NUMBER:
+      return 35;
+
+    case HL_MATCH:
+      return 34;
+
+    case HL_OPERATOR:
+      return 31;
+
+    default:
+      return 37;
   }
 }
 

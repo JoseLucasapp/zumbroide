@@ -73,34 +73,34 @@ char *C_HL_keywords[] = {
 };
 
 char *ZUM_HL_keywords[] = {
-  /* keywords da linguagem */
+  /* keywords */
   "var", "import", "or", "and", "let", "const",
   "fct", "return", "if", "else", "while",
   "true", "false", "null",
 
-  /* builtins / funções internas */
+  /* builtins */
   "show|", "input|",
-  "toint|", "tofloat|", "tostring|", "tobool|",
+  "toInt|", "toFloat|", "toString|", "toBool|",
   "date|", "organize|", "sum|",
-  "dictvalues|", "dictkeys|",
-  "sendemail|", "sendwhatsapp|",
-  "randominteger|", "randomfloat|", "bhaskara|",
-  "capitalize|", "tolowercase|", "touppercase|", "removewhitespaces|",
-  "indexof|", "addtoarraystart|", "removefromarray|", "addtoarrayend|",
-  "min|", "max|", "sizeof|",
-  "first|", "last|", "allbutfirst|",
-  "addtodict|", "getfromdict|", "deletefromdict|",
-  "clear|", "get|",
-  "json_parse|",
-  "registerroute|", "server|", "html|",
-  "servestatic|", "servefile|",
-  "mysqlconnection|", "mysqlcreatetable|", "mysqlinsertintotable|",
-  "mysqlgetfromtable|", "mysqlupdateintotable|", "mysqldeletefromtable|",
-  "mysqlshowtables|", "mysqlshowtablecolumns|", "mysqldroptable|",
-  "dotenvload|", "dotenvget|",
-  "createcsv|", "createdoc|", "createfile|", "createpdf|", "createtxt|",
-  "restdelete|", "restget|", "restpost|", "restput|", "restpatch|",
-  "switchcase|",
+  "dictValues|", "dictKeys|",
+  "sendEmail|", "sendWhatsapp|",
+  "randomInteger|", "randomFloat|", "bhaskara|",
+  "capitalize|", "toLowercase|", "toUppercase|", "removeWhiteSpaces|",
+  "indexOf|", "addToArrayStart|", "removeFromArray|", "addToArrayEnd|",
+  "min|", "max|", "sizeOf|",
+  "first|", "last|", "allButFirst|",
+  "addToDict|", "getFromDict|", "deleteFromDict|",
+  "get|",
+  "jsonParse|",
+  "registerRoute|", "server|", "html|",
+  "serveStatic|", "serveFile|",
+  "mysqlConnection|", "mysqlCreateTable|", "mysqlInsertIntoTable|",
+  "mysqlGetFromTable|", "mysqlUpdateIntoTable|", "mysqlDeleteFromTable|",
+  "mysqlShowTables|", "mysqlShowTableColumns|", "mysqlDropTable|",
+  "dotenvLoad|", "dotenvGet|",
+  "createCsv|", "createDoc|", "createFile|", "createPdf|", "createTxt|",
+  "restDelete|", "restGet|", "restPost|", "restPut|", "restPatch|",
+  "switchCase|",
 
   NULL
 };
@@ -311,14 +311,16 @@ int getCursorPosition(int *rows, int *cols){
     unsigned int i = 0;
 
     if(write(STDOUT_FILENO, "\x1b[6n", 4) != 4) return -1;
+
     while(i < sizeof(buf) - 1){
-        if(read(STDIN_FILENO, &buf[i], i) != 1) break;
+        if(read(STDIN_FILENO, &buf[i], 1) != 1) break;
         if(buf[i] == 'R') break;
         i++;
     }
+
     buf[i] = '\0';
 
-    if(buf[0] != '\x1b' || buf[i] != '[') return -1;
+    if(buf[0] != '\x1b' || buf[1] != '[') return -1;
     if(sscanf(&buf[2], "%d;%d", rows, cols) != 2) return -1;
 
     return 0;
@@ -913,7 +915,8 @@ void editorDrawRows(struct appendingBuff *ab){
                     abAppend(ab, &c[j], 1);
                 }
             }
-            abAppend(ab, "\x1b[31m", 5);
+
+abAppend(ab, "\x1b[39m", 5);
         }
         abAppend(ab, "\x1b[K", 3);
         abAppend(ab, "\r\n", 2);

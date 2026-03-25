@@ -1,4 +1,8 @@
-# ZumbroIDE
+<h1 align='center' >ZumbroIDE</h1>
+
+<p align='center'>
+    <img src='./public/logo.png' width="120">
+</p>
 
 ZumbroIDE is a lightweight, terminal-based code editor written in C.
 The goal of this project is to provide a fast, minimal, extensible editor that helps developers understand how text editors work under the hood, from raw input handling to syntax highlighting and file I/O.
